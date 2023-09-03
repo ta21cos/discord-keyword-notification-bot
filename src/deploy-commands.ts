@@ -27,7 +27,7 @@ if (!DISCORD_BOT_TOKEN || !GUILD_ID || !CLIENT_ID) {
     const filePath = path.join(commandsPath, file);
 
     const command = (await import(filePath)).default;
-    console.log({ command });
+
     if ("data" in command && "execute" in command) {
       commands.push(command.data.toJSON());
     } else {
