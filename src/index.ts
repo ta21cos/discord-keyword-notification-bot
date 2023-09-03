@@ -7,9 +7,24 @@ import path from "path";
 config();
 
 const TOKEN = process.env.DISCORD_BOT_TOKEN;
+export const TARGET_CHANNEL_ID = process.env.TARGET_CHANNEL_ID;
+
+if (!TOKEN || !TARGET_CHANNEL_ID) {
+  throw new Error("Missing environment variables");
+}
 
 (async () => {
-  const client = new Client({ intents: [GatewayIntentBits.Guilds] });
+  const client = new Client({
+    intents: [
+      GatewayIntentBits.Guilds,
+      GatewayIntentBits.GuildMessages,
+      GatewayIntentBits.MessageContent,
+    ],
+    allowedMentions: { parse: ["users", "roles"] },
+  });
+
+  client.login(TOKEN);
+
   const commands = new Collection<string, Command>();
 
   const commandsPath = path.join(__dirname, "commands");
@@ -26,11 +41,25 @@ const TOKEN = process.env.DISCORD_BOT_TOKEN;
     }
   });
 
+  const eventsPath = path.join(__dirname, "events");
+  const eventFiles = await fs
+    .readdirSync(eventsPath)
+    .filter((file) => file.endsWith(".ts"));
+
+  eventFiles.map(async (file) => {
+    const filePath = path.join(eventsPath, file);
+    const event = (await import(filePath)).default;
+
+    if (event.once) {
+      client.once(event.name, (...args) => event.execute(...args));
+    } else {
+      client.on(event.name, (...args) => event.execute(...args));
+    }
+  });
+
   client.once(Events.ClientReady, (c) => {
     console.log(`Ready, logged in as ${c.user.tag} `);
   });
-
-  client.login(TOKEN);
 
   client.on(Events.InteractionCreate, async (interaction) => {
     if (!interaction.isChatInputCommand()) return;
