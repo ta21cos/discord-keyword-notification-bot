@@ -50,6 +50,8 @@ if (!TOKEN || !TARGET_CHANNEL_ID) {
     const filePath = path.join(eventsPath, file);
     const event = (await import(filePath)).default;
 
+    console.log(`Loaded event ${event.name}`);
+
     if (event.once) {
       client.once(event.name, (...args) => event.execute(...args));
     } else {
