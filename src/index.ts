@@ -3,6 +3,7 @@ import { Client, Collection, Events, GatewayIntentBits } from "discord.js";
 import { config } from "dotenv";
 import { Command } from "./commands/ping";
 import path from "path";
+import http from "http";
 
 config();
 
@@ -13,7 +14,8 @@ if (!TOKEN || !TARGET_CHANNEL_ID) {
   throw new Error("Missing environment variables");
 }
 
-(async () => {
+const setup = async () => {
+  console.log("Setting up discord.js client");
   const client = new Client({
     intents: [
       GatewayIntentBits.Guilds,
@@ -38,6 +40,7 @@ if (!TOKEN || !TARGET_CHANNEL_ID) {
 
     if ("data" in command && "execute" in command) {
       commands.set(command.data.name, command);
+      console.log(`Loaded command ${command.data.name}`);
     }
   });
 
@@ -90,4 +93,17 @@ if (!TOKEN || !TARGET_CHANNEL_ID) {
       }
     }
   });
-})();
+};
+
+setup();
+
+// Required for health check of Cloud Run
+// ref: https://emilwypych.com/2020/10/25/how-to-run-discord-bot-on-cloud-run/?cn-reloaded=1
+const server = http.createServer((req, res) => {
+  res.writeHead(200, { "Content-Type": "text/plain" });
+  res.end("Just for testing purpose\n");
+});
+
+server.listen(process.env.PORT || 8080, () => {
+  console.log("Server started");
+});
